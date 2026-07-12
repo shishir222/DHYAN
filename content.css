@@ -1,0 +1,91 @@
+/* Overlay styles to block content on blacklisted sites */
+#dhyan-block-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background-color: #0a0e1a !important;
+  background-image: 
+    radial-gradient(ellipse at 20% 50%, rgba(239, 68, 68, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 50%, rgba(239, 68, 68, 0.05) 0%, transparent 50%) !important;
+  color: #e2e8f0 !important;
+  z-index: 2147483647 !important; /* Max z-index */
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+  backdrop-filter: blur(20px) !important;
+}
+
+#dhyan-block-container {
+  text-align: center !important;
+  max-width: 480px !important;
+  padding: 48px 40px !important;
+  background: rgba(15, 23, 42, 0.8) !important;
+  border: 1px solid rgba(239, 68, 68, 0.2) !important;
+  border-radius: 24px !important;
+  box-shadow: 
+    0 0 60px rgba(239, 68, 68, 0.06),
+    0 25px 50px rgba(0, 0, 0, 0.4) !important;
+}
+
+#dhyan-block-container h1 {
+  font-size: 28px !important;
+  font-weight: 700 !important;
+  color: #f87171 !important;
+  margin-bottom: 8px !important;
+  line-height: 1.2 !important;
+}
+
+#dhyan-block-container .dhyan-subtitle {
+  font-size: 15px !important;
+  color: #94a3b8 !important;
+  line-height: 1.5 !important;
+  margin-bottom: 32px !important;
+}
+
+#dhyan-block-container .dhyan-timer-display {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 4px !important;
+  margin-bottom: 32px !important;
+}
+
+#dhyan-block-timer {
+  font-size: 48px !important;
+  font-weight: 700 !important;
+  font-variant-numeric: tabular-nums !important;
+  background: linear-gradient(135deg, #fca5a5, #ef4444) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+}
+
+#dhyan-block-container .dhyan-timer-label {
+  font-size: 12px !important;
+  color: #64748b !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.1em !important;
+}
+
+#dhyan-block-container .dhyan-creative-message {
+  margin-top: 16px !important;
+  padding: 16px !important;
+  background: rgba(15, 23, 42, 0.5) !important;
+  border-left: 4px solid #ef4444 !important;
+  border-radius: 8px !important;
+  font-style: italic !important;
+  font-size: 16px !important;
+  color: #e2e8f0 !important;
+  line-height: 1.6 !important;
+  text-align: left !important;
+}
+
+#dhyan-block-container .dhyan-footer-note {
+  margin-top: 24px !important;
+  font-size: 12px !important;
+  color: #475569 !important;
+}

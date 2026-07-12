@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>DHYAN</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="popup.css">
+</head>
+
+<body>
+  <div class="app" id="app">
+
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">
+        <span class="logo-text">DHYAN</span>
+      </div>
+      <button class="settings-btn" id="settings-toggle" title="Settings">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3" />
+          <path
+            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+        </svg>
+      </button>
+    </header>
+
+    <!-- Timer Ring -->
+    <div class="timer-container" id="timer-container">
+      <svg class="timer-ring" viewBox="0 0 200 200">
+        <circle class="timer-ring-bg" cx="100" cy="100" r="88" />
+        <circle class="timer-ring-progress" id="timer-ring-progress" cx="100" cy="100" r="88" />
+      </svg>
+      <div class="timer-inner">
+        <div class="timer-phase" id="timer-phase">READY</div>
+        <div class="timer-display" id="timer-display">25:00</div>
+        <div class="timer-session" id="timer-session">Session 0 / 4</div>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls" id="controls">
+      <button class="ctrl-btn ctrl-start" id="btn-start" title="Start">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+          <polygon points="5,3 19,12 5,21" />
+        </svg>
+      </button>
+      <button class="ctrl-btn ctrl-pause hidden" id="btn-pause" title="Pause">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+          <rect x="6" y="4" width="4" height="16" />
+          <rect x="14" y="4" width="4" height="16" />
+        </svg>
+      </button>
+      <button class="ctrl-btn ctrl-resume hidden" id="btn-resume" title="Resume">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+          <polygon points="5,3 19,12 5,21" />
+        </svg>
+      </button>
+      <button class="ctrl-btn ctrl-stop hidden" id="btn-stop" title="Stop">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+          <rect x="4" y="4" width="16" height="16" rx="2" />
+        </svg>
+      </button>
+    </div>
+
+    <!-- Status -->
+    <div class="status-bar" id="status-bar">
+      <div class="status-indicator" id="status-indicator"></div>
+      <span class="status-text" id="status-text">Ready to focus</span>
+    </div>
+
+    <!-- Stats Panel -->
+    <div class="stats-panel" id="stats-panel">
+      <div class="stat-item">
+        <span class="stat-value" id="stat-focus">0h 0m</span>
+        <span class="stat-label">Focus Time</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <span class="stat-value" id="stat-sessions">0</span>
+        <span class="stat-label">Sessions</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <span class="stat-value" id="stat-blocked">0</span>
+        <span class="stat-label">Blocked</span>
+      </div>
+    </div>
+
+    <!-- Settings Panel (hidden by default) -->
+    <div class="settings-panel hidden" id="settings-panel">
+      <h3 class="settings-title">Settings</h3>
+
+      <div class="setting-group">
+        <label class="setting-label" for="setting-work">Work Duration</label>
+        <div class="setting-control">
+          <button class="setting-adj" data-target="setting-work" data-delta="-5">−</button>
+          <span class="setting-value" id="setting-work">25</span>
+          <span class="setting-unit">min</span>
+          <button class="setting-adj" data-target="setting-work" data-delta="5">+</button>
+        </div>
+      </div>
+
+      <div class="setting-group">
+        <label class="setting-label" for="setting-break">Break Duration</label>
+        <div class="setting-control">
+          <button class="setting-adj" data-target="setting-break" data-delta="-1">−</button>
+          <span class="setting-value" id="setting-break">5</span>
+          <span class="setting-unit">min</span>
+          <button class="setting-adj" data-target="setting-break" data-delta="1">+</button>
+        </div>
+      </div>
+
+      <div class="setting-group">
+        <label class="setting-label" for="setting-long-break">Long Break</label>
+        <div class="setting-control">
+          <button class="setting-adj" data-target="setting-long-break" data-delta="-5">−</button>
+          <span class="setting-value" id="setting-long-break">15</span>
+          <span class="setting-unit">min</span>
+          <button class="setting-adj" data-target="setting-long-break" data-delta="5">+</button>
+        </div>
+      </div>
+
+      <div class="setting-group">
+        <label class="setting-label" for="setting-sessions">Sessions Before Long Break</label>
+        <div class="setting-control">
+          <button class="setting-adj" data-target="setting-sessions" data-delta="-1">−</button>
+          <span class="setting-value" id="setting-sessions">4</span>
+          <span class="setting-unit"></span>
+          <button class="setting-adj" data-target="setting-sessions" data-delta="1">+</button>
+        </div>
+      </div>
+
+      <div class="setting-group blacklist-group">
+        <label class="setting-label">Focus Blacklist</label>
+        <div class="blacklist-add">
+          <input type="text" class="blacklist-input-single" id="blacklist-input-new" placeholder="e.g. facebook.com">
+          <button class="blacklist-btn" id="blacklist-add-btn">+</button>
+        </div>
+        <ul class="blacklist-list" id="blacklist-list"></ul>
+      </div>
+
+      <button class="save-settings-btn" id="save-settings">Save Settings</button>
+    </div>
+
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+
+</html>
