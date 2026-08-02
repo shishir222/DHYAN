@@ -21,35 +21,12 @@
     <h1>Get Back To Work!</h1>
     <p class="subtitle">You added this site to your blacklist for a reason. Stop slacking off and get back to your focus session!</p>
 
-   <div class="creative-message">
+    <div class="creative-message">
       <p>"The future depends on what you do today." — Mahatma Gandhi</p>
     </div>
 
     <p class="footer-note">DHYAN — Stay in the zone.</p>
   </div>
-
-  <script>
-    // Read timer from extension storage
-    if (chrome && chrome.storage) {
-      chrome.storage.local.get(null, (data) => {
-        if (data.endTime) {
-          const timerEl = document.getElementById('blocked-timer');
-          function updateTimer() {
-            const diff = data.endTime - Date.now();
-            if (diff <= 0) {
-              timerEl.textContent = '00:00';
-              return;
-            }
-            const m = Math.floor(diff / 60000);
-            const s = Math.floor((diff % 60000) / 1000);
-            timerEl.textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-          }
-          updateTimer();
-          setInterval(updateTimer, 1000);
-        }
-      });
-    }
-  </script>
 </body>
 
 </html>

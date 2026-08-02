@@ -1,27 +1,23 @@
 const DEFAULT_STATE = {
-  // Session
   sessionActive: false,
-  sessionPhase: 'idle',       // 'idle' | 'work' | 'break' | 'paused'
-  pausedPhase: null,          // phase before pause ('work' | 'break')
+  sessionPhase: 'idle',
+  pausedPhase: null,
 
-  // Timer
-  workDuration: 25,           // minutes
-  breakDuration: 5,           // minutes
-  longBreakDuration: 15,      // minutes
+  workDuration: 25,
+  breakDuration: 5,
+  longBreakDuration: 15,
   sessionsBeforeLongBreak: 4,
   currentSessionCount: 0,
   endTime: null,
-  pausedTimeRemaining: null,  // ms remaining when paused
+  pausedTimeRemaining: null,
 
-  // Focus lock
   focusTabId: null,
   focusWindowId: null,
   focusTabUrl: null,
 
-  // Deep Lock blacklist
-  blacklist: [],              // array of domain strings
+  blacklist: [],
+  showFloatingTimer: true,
 
-  // Statistics
   stats: {
     totalFocusMs: 0,
     totalBreakMs: 0,
@@ -31,8 +27,7 @@ const DEFAULT_STATE = {
   },
 };
 
-// State Manager handles storage and caching
-
+// Manage extension state and local storage caching
 const StateManager = (() => {
   let cache = { ...DEFAULT_STATE };
   let mutexChain = Promise.resolve();
@@ -60,7 +55,7 @@ const StateManager = (() => {
       .then(() => fn(cache))
       .then((result) => save().then(() => result))
       .catch((err) => {
-        console.error('[FocusLock] mutate error:', err);
+        console.error('State mutation failed:', err);
       });
     return mutexChain;
   }
@@ -68,10 +63,8 @@ const StateManager = (() => {
   return { load, save, getCache, mutate };
 })();
 
-// Pomodoro Timer manages work and break phases
-
+// Pomodoro timer logic
 const PomodoroTimer = (() => {
-
   async function startPhase(phase) {
     await StateManager.mutate((s) => {
       s.sessionPhase = phase;
@@ -97,6 +90,7 @@ const PomodoroTimer = (() => {
     chrome.alarms.create('pomodoro', { when: s.endTime });
 
     updateBadge();
+    scheduleBadgeUpdate();
   }
 
   async function onAlarmFire() {
@@ -112,21 +106,12 @@ const PomodoroTimer = (() => {
         st.stats.sessionsCompleted += 1;
         st.stats.lastSessionDate = new Date().toISOString().split('T')[0];
       });
-      
+
       showNotification('Break Time!', 'Great work! Take a short break.');
       await startPhase('break');
-      
-      // Notify user via dashboard and sound
-      chrome.windows.create({
-        url: 'popup.html?notify=true',
-        type: 'popup',
-        width: 320,
-        height: 480,
-        focused: true
-      });
+
       playOffscreenAudio();
       broadcastState();
-      
     } else if (s.sessionPhase === 'break') {
       await StateManager.mutate((st) => {
         const breakDur = (st.currentSessionCount % st.sessionsBeforeLongBreak === 0)
@@ -135,6 +120,7 @@ const PomodoroTimer = (() => {
       });
       showNotification('Focus Time!', 'Break is over. Let\'s get back to work!');
       await startPhase('work');
+      playOffscreenAudio();
       broadcastState();
     }
   }
@@ -142,8 +128,7 @@ const PomodoroTimer = (() => {
   return { startPhase, onAlarmFire };
 })();
 
-// Offscreen Audio plays sound reliably without a visible window
-
+// Offscreen document helper for audio playback
 async function playOffscreenAudio() {
   const offscreenUrl = 'audio.html';
   const existingContexts = await chrome.runtime.getContexts({
@@ -155,15 +140,89 @@ async function playOffscreenAudio() {
     await chrome.offscreen.createDocument({
       url: offscreenUrl,
       reasons: ['AUDIO_PLAYBACK'],
-      justification: 'Play chime sound when break starts'
+      justification: 'Play chime sound when break starts or ends'
     });
   }
-  
+
   chrome.runtime.sendMessage({ action: 'playChime' });
 }
 
-// Session Control handles start, stop, pause, and resume actions
+// Check if URL matches any blacklisted domain
+function isUrlBlacklisted(url, blacklist) {
+  if (!url || !blacklist || blacklist.length === 0) return false;
 
+  let hostname;
+  try {
+    hostname = new URL(url).hostname.toLowerCase();
+  } catch {
+    return false;
+  }
+
+  return blacklist.some((domain) => {
+    const d = domain.toLowerCase();
+    return hostname === d || hostname.endsWith('.' + d);
+  });
+}
+
+const BLOCKED_PAGE_URL = chrome.runtime.getURL('blocked.html');
+
+function isNewTabUrl(url) {
+  if (!url) return false;
+  const lUrl = url.toLowerCase();
+  return (
+    lUrl === 'chrome://newtab/' ||
+    lUrl === 'chrome://newtab' ||
+    lUrl === 'chrome://new-tab-page/' ||
+    lUrl === 'chrome://new-tab-page' ||
+    lUrl === 'about:blank' ||
+    lUrl.startsWith('chrome://newtab') ||
+    lUrl.startsWith('chrome://new-tab-page')
+  );
+}
+
+// Prevent opening new tabs during focus session
+chrome.tabs.onCreated.addListener(async (tab) => {
+  await StateManager.load();
+  const s = StateManager.getCache();
+
+  if (s.sessionActive && s.sessionPhase === 'work') {
+    const url = tab.pendingUrl || tab.url || '';
+    if (url.startsWith(chrome.runtime.getURL(''))) return;
+
+    try {
+      await chrome.tabs.remove(tab.id);
+      await StateManager.mutate((st) => {
+        st.stats.distractionsBlocked += 1;
+      });
+    } catch (err) {
+      console.warn('Failed to remove new tab:', err);
+    }
+  }
+});
+
+// Monitor tab updates and redirect blacklisted URLs
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+  if (!changeInfo.url) return;
+  if (changeInfo.url.startsWith(chrome.runtime.getURL(''))) return;
+
+  await StateManager.load();
+  const s = StateManager.getCache();
+
+  if (!s.sessionActive || s.sessionPhase !== 'work') return;
+
+  const isNewTab = isNewTabUrl(changeInfo.url);
+  const isBlacklisted = isUrlBlacklisted(changeInfo.url, s.blacklist || []);
+
+  if (isNewTab || isBlacklisted) {
+    await StateManager.mutate((st) => {
+      st.stats.distractionsBlocked += 1;
+    });
+
+    chrome.tabs.update(tabId, { url: BLOCKED_PAGE_URL });
+  }
+});
+
+// Sync state across content scripts
 async function broadcastState() {
   const state = StateManager.getCache();
   const tabs = await chrome.tabs.query({});
@@ -171,7 +230,7 @@ async function broadcastState() {
     try {
       chrome.tabs.sendMessage(tab.id, { action: 'updateBlockState', state });
     } catch {
-      // Ignored
+      // Tab may not have content script
     }
   }
 }
@@ -229,7 +288,7 @@ async function stopSession() {
 }
 
 async function endSession(reason) {
-  console.log('[FocusLock] Session ended:', reason);
+  console.log('Session ended:', reason);
   await stopSession();
 }
 
@@ -269,44 +328,17 @@ async function resumeSession() {
   const updated = StateManager.getCache();
   chrome.alarms.create('pomodoro', { when: updated.endTime });
   updateBadge();
+  scheduleBadgeUpdate();
   broadcastState();
 }
 
-// Badge visually indicates the session phase on the extension icon
-
 function updateBadge() {
-  const s = StateManager.getCache();
-
-  if (!s.sessionActive) {
-    chrome.action.setBadgeText({ text: '' });
-    return;
-  }
-
-  if (s.sessionPhase === 'paused') {
-    chrome.action.setBadgeText({ text: '||' });
-    chrome.action.setBadgeBackgroundColor({ color: '#f59e0b' });
-    return;
-  }
-
-  if (s.sessionPhase === 'break') {
-    chrome.action.setBadgeText({ text: 'BRK' });
-    chrome.action.setBadgeBackgroundColor({ color: '#f59e0b' });
-    return;
-  }
-
-  if (s.sessionPhase === 'work' && s.endTime) {
-    const remaining = Math.max(0, s.endTime - Date.now());
-    const mins = Math.ceil(remaining / 60000);
-    chrome.action.setBadgeText({ text: String(mins) });
-    chrome.action.setBadgeBackgroundColor({ color: '#22c55e' });
-  }
+  chrome.action.setBadgeText({ text: '' });
 }
 
 function scheduleBadgeUpdate() {
-  chrome.alarms.create('badge', { periodInMinutes: 1 });
+  chrome.alarms.clear('badge');
 }
-
-// Notifications send desktop alerts to the user
 
 function showNotification(title, message) {
   try {
@@ -318,13 +350,9 @@ function showNotification(title, message) {
       priority: 2,
     });
   } catch (err) {
-    console.warn('[FocusLock] Notification failed:', err);
+    console.warn('Notification failed:', err);
   }
 }
-
-// Event Listeners for initialization and crashes
-
-// Installation & Startup
 
 chrome.runtime.onInstalled.addListener(async () => {
   const existing = await chrome.storage.local.get(null);
@@ -334,19 +362,21 @@ chrome.runtime.onInstalled.addListener(async () => {
   }
   await chrome.storage.local.set(merged);
   await StateManager.load();
+  chrome.action.setBadgeText({ text: '' });
 });
 
 chrome.runtime.onStartup.addListener(async () => {
   await StateManager.load();
   const s = StateManager.getCache();
+  chrome.action.setBadgeText({ text: '' });
 
   if (s.sessionActive) {
     if (s.endTime && Date.now() >= s.endTime) {
       await endSession('Chrome restarted after timer expired');
     } else if (s.endTime) {
       chrome.alarms.create('pomodoro', { when: s.endTime });
-      scheduleBadgeUpdate();
-      updateBadge();
+      broadcastState();
+    } else if (s.sessionPhase === 'paused') {
       broadcastState();
     } else {
       await endSession('Corrupted state on startup');
@@ -354,24 +384,17 @@ chrome.runtime.onStartup.addListener(async () => {
   }
 });
 
-// Alarm Handler for timer events
-
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name === 'pomodoro') {
     await PomodoroTimer.onAlarmFire();
-  } else if (alarm.name === 'badge') {
-    await StateManager.load();
-    updateBadge();
   }
 });
-
-// Message Handler handles communication between popup and background
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   handleMessage(request)
     .then((response) => sendResponse(response))
     .catch((err) => {
-      console.error('[FocusLock] message handler error:', err);
+      console.error('Message handler error:', err);
       sendResponse({ error: err.message });
     });
   return true;
@@ -408,6 +431,17 @@ async function handleMessage(req) {
       return StateManager.getCache();
     }
 
+    case 'getTimerState': {
+      const s = StateManager.getCache();
+      return {
+        sessionActive: s.sessionActive,
+        sessionPhase: s.sessionPhase,
+        endTime: s.endTime,
+        pausedTimeRemaining: s.pausedTimeRemaining,
+        showFloatingTimer: s.showFloatingTimer,
+      };
+    }
+
     case 'updateSettings': {
       await StateManager.mutate((s) => {
         if (req.workDuration != null) s.workDuration = req.workDuration;
@@ -415,6 +449,14 @@ async function handleMessage(req) {
         if (req.longBreakDuration != null) s.longBreakDuration = req.longBreakDuration;
         if (req.sessionsBeforeLongBreak != null) s.sessionsBeforeLongBreak = req.sessionsBeforeLongBreak;
         if (req.blacklist != null) s.blacklist = req.blacklist;
+      });
+      broadcastState();
+      return StateManager.getCache();
+    }
+
+    case 'updateShowFloatingTimer': {
+      await StateManager.mutate((s) => {
+        s.showFloatingTimer = !!req.value;
       });
       broadcastState();
       return StateManager.getCache();
@@ -430,7 +472,11 @@ async function handleMessage(req) {
     case 'checkBlacklist': {
       const state = StateManager.getCache();
       const hostname = req.hostname || '';
-      const isBlacklisted = state.blacklist && state.blacklist.some(domain => hostname.includes(domain));
+      const isBlacklisted = state.blacklist && state.blacklist.some(domain => {
+        const d = domain.toLowerCase();
+        const h = hostname.toLowerCase();
+        return h === d || h.endsWith('.' + d);
+      });
       const shouldBlock = isBlacklisted && state.sessionActive && state.sessionPhase === 'work';
       return { isBlocked: shouldBlock, endTime: state.endTime };
     }

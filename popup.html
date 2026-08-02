@@ -134,13 +134,31 @@
         </div>
       </div>
 
+      <!-- Show Floating Timer Toggle -->
+      <div class="setting-group">
+        <label class="setting-label">Show Floating Timer</label>
+        <label class="toggle-switch" id="toggle-floating-timer">
+          <input type="checkbox" id="floating-timer-checkbox" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="settings-divider"></div>
+
+      <!-- Blacklist Manager -->
       <div class="setting-group blacklist-group">
-        <label class="setting-label">Focus Blacklist</label>
+        <label class="setting-label">Blocked Websites</label>
         <div class="blacklist-add">
-          <input type="text" class="blacklist-input-single" id="blacklist-input-new" placeholder="e.g. facebook.com">
-          <button class="blacklist-btn" id="blacklist-add-btn">+</button>
+          <input type="text" class="blacklist-input-single" id="blacklist-input-new" placeholder="Enter website (e.g. facebook.com)">
+          <button class="blacklist-btn" id="blacklist-add-btn" title="Add website">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+          </button>
         </div>
         <ul class="blacklist-list" id="blacklist-list"></ul>
+        <p class="blacklist-hint" id="blacklist-empty-hint">No websites blocked yet</p>
       </div>
 
       <button class="save-settings-btn" id="save-settings">Save Settings</button>
