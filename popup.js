@@ -15,7 +15,6 @@ const DOM = {
 
   statFocus: document.getElementById('stat-focus'),
   statSessions: document.getElementById('stat-sessions'),
-  statBlocked: document.getElementById('stat-blocked'),
 
   settingsToggle: document.getElementById('settings-toggle'),
   settingsPanel: document.getElementById('settings-panel'),
@@ -106,7 +105,9 @@ function renderTimer(state) {
     const workMin = state.workDuration || 25;
     DOM.timerDisplay.textContent = `${String(workMin).padStart(2, '0')}:00`;
     DOM.timerPhase.textContent = 'READY';
-    DOM.timerRingProgress.style.strokeDashoffset = RING_CIRCUMFERENCE;
+    if (DOM.timerRingProgress) {
+      DOM.timerRingProgress.style.strokeDashoffset = RING_CIRCUMFERENCE;
+    }
   }
 
   const total = state.sessionsBeforeLongBreak || 4;
@@ -115,6 +116,8 @@ function renderTimer(state) {
 }
 
 function updateRing(state, remainingMs) {
+  if (!DOM.timerRingProgress) return;
+
   const totalMs = getTotalPhaseDuration(state);
   if (totalMs <= 0) return;
 
@@ -190,7 +193,6 @@ function renderStats(state) {
 
   DOM.statFocus.textContent = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
   DOM.statSessions.textContent = stats.sessionsCompleted || 0;
-  DOM.statBlocked.textContent = stats.distractionsBlocked || 0;
 }
 
 function renderSettings(state) {

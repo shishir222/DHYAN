@@ -9,6 +9,8 @@ let startX = 0;
 let startY = 0;
 let initialLeft = 0;
 let initialTop = 0;
+let hasDragged = false;
+const DRAG_THRESHOLD = 5;
 
 // Enable drag-and-drop on the floating timer element
 function makeDraggable(el) {
@@ -29,7 +31,7 @@ function makeDraggable(el) {
     if (e.type === 'mousedown' && e.button !== 0) return;
 
     isDragging = true;
-    el.classList.add('dhyan-dragging');
+    hasDragged = false;
 
     const clientX = e.clientX || (e.touches && e.touches[0].clientX);
     const clientY = e.clientY || (e.touches && e.touches[0].clientY);
@@ -62,6 +64,10 @@ function makeDraggable(el) {
     const deltaX = clientX - startX;
     const deltaY = clientY - startY;
 
+    if (!hasDragged && Math.hypot(deltaX, deltaY) < DRAG_THRESHOLD) return;
+    hasDragged = true;
+    el.classList.add('dhyan-dragging');
+
     let newLeft = initialLeft + deltaX;
     let newTop = initialTop + deltaY;
 
@@ -91,6 +97,10 @@ function makeDraggable(el) {
     document.removeEventListener('mouseup', onPointerUp);
     document.removeEventListener('touchmove', onPointerMove);
     document.removeEventListener('touchend', onPointerUp);
+
+    if (!hasDragged) {
+      chrome.runtime.sendMessage({ action: 'openPopup' });
+    }
   };
 
   el.addEventListener('mousedown', onPointerDown);
@@ -103,7 +113,6 @@ function createFloatingTimer() {
   floatingTimerEl = document.createElement('div');
   floatingTimerEl.id = 'dhyan-floating-timer';
   floatingTimerEl.innerHTML = `
-    <div id="dhyan-floating-label">🔒 Focus</div>
     <div id="dhyan-floating-time">--:--</div>
   `;
 
@@ -152,7 +161,6 @@ function updateFloatingTime() {
   if (!currentEndTime || !floatingTimerEl) return;
 
   const timeEl = floatingTimerEl.querySelector('#dhyan-floating-time');
-  const labelEl = floatingTimerEl.querySelector('#dhyan-floating-label');
   if (!timeEl) return;
 
   const diff = Math.max(0, currentEndTime - Date.now());
@@ -160,13 +168,6 @@ function updateFloatingTime() {
   const s = Math.floor((diff % 60000) / 1000);
   timeEl.textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 
-  if (labelEl) {
-    if (currentPhase === 'break') {
-      labelEl.textContent = '☕ Break';
-    } else {
-      labelEl.textContent = '🔒 Focus';
-    }
-  }
 }
 
 function applyTimerState(state) {
@@ -187,6 +188,7 @@ function applyTimerState(state) {
 
     if (showFloatingTimer) {
       createFloatingTimer();
+      floatingTimerEl.classList.remove('dhyan-paused');
       updateFloatingTime();
       if (floatingInterval) clearInterval(floatingInterval);
       floatingInterval = setInterval(updateFloatingTime, 1000);
@@ -197,16 +199,13 @@ function applyTimerState(state) {
     if (showFloatingTimer) {
       createFloatingTimer();
       const timeEl = floatingTimerEl ? floatingTimerEl.querySelector('#dhyan-floating-time') : null;
-      const labelEl = floatingTimerEl ? floatingTimerEl.querySelector('#dhyan-floating-label') : null;
       if (timeEl) {
         const diff = state.pausedTimeRemaining;
         const m = Math.floor(diff / 60000);
         const s = Math.floor((diff % 60000) / 1000);
         timeEl.textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
       }
-      if (labelEl) {
-        labelEl.textContent = '⏸ Paused';
-      }
+      floatingTimerEl.classList.add('dhyan-paused');
       if (floatingInterval) {
         clearInterval(floatingInterval);
         floatingInterval = null;

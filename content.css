@@ -1,58 +1,39 @@
-/* Floating timer overlay styles */
-
 #dhyan-floating-timer {
   position: fixed !important;
   top: 16px;
   right: 16px;
-  width: 120px !important;
-  height: 45px !important;
-  display: flex !important;
-  flex-direction: row !important;
-  align-items: center !important;
-  justify-content: center !important;
-  gap: 8px !important;
-  background: rgba(10, 14, 26, 0.88) !important;
-  border: 1px solid rgba(34, 197, 94, 0.2) !important;
-  border-radius: 12px !important;
-  box-shadow:
-    0 4px 16px rgba(0, 0, 0, 0.4),
-    0 0 20px rgba(34, 197, 94, 0.06) !important;
+  width: max-content !important;
+  height: auto !important;
+  display: block !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
   z-index: 2147483647 !important;
   pointer-events: auto !important;
   cursor: grab !important;
   user-select: none !important;
   -webkit-user-select: none !important;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
-  backdrop-filter: blur(12px) !important;
-  -webkit-backdrop-filter: blur(12px) !important;
+  font-family: Arial, sans-serif !important;
+  padding: 0 !important;
   transition: opacity 0.3s ease !important;
-  padding: 0 12px !important;
 }
 
 #dhyan-floating-timer.dhyan-dragging {
   cursor: grabbing !important;
-  box-shadow:
-    0 8px 24px rgba(0, 0, 0, 0.6),
-    0 0 25px rgba(34, 197, 94, 0.25) !important;
-}
-
-#dhyan-floating-label {
-  font-size: 10px !important;
-  font-weight: 600 !important;
-  color: rgba(148, 163, 184, 0.9) !important;
-  letter-spacing: 0.02em !important;
-  white-space: nowrap !important;
-  line-height: 1 !important;
-  pointer-events: none !important;
 }
 
 #dhyan-floating-time {
-  font-size: 16px !important;
-  font-weight: 700 !important;
-  color: #f1f5f9 !important;
+  font-size: 17px !important;
+  font-weight: 600 !important;
+  color: inherit !important;
   font-variant-numeric: tabular-nums !important;
   letter-spacing: -0.01em !important;
   line-height: 1 !important;
   white-space: nowrap !important;
   pointer-events: none !important;
+}
+
+#dhyan-floating-timer.dhyan-paused #dhyan-floating-time {
+  opacity: 0.55 !important;
 }

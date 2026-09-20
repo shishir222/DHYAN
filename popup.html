@@ -30,10 +30,6 @@
 
     <!-- Timer Ring -->
     <div class="timer-container" id="timer-container">
-      <svg class="timer-ring" viewBox="0 0 200 200">
-        <circle class="timer-ring-bg" cx="100" cy="100" r="88" />
-        <circle class="timer-ring-progress" id="timer-ring-progress" cx="100" cy="100" r="88" />
-      </svg>
       <div class="timer-inner">
         <div class="timer-phase" id="timer-phase">READY</div>
         <div class="timer-display" id="timer-display">25:00</div>
@@ -83,18 +79,14 @@
         <span class="stat-value" id="stat-sessions">0</span>
         <span class="stat-label">Sessions</span>
       </div>
-      <div class="stat-divider"></div>
-      <div class="stat-item">
-        <span class="stat-value" id="stat-blocked">0</span>
-        <span class="stat-label">Blocked</span>
-      </div>
     </div>
 
-    <!-- Settings Panel (hidden by default) -->
+
     <div class="settings-panel hidden" id="settings-panel">
       <h3 class="settings-title">Settings</h3>
 
-      <div class="setting-group">
+      <div class="settings-content">
+        <div class="setting-group">
         <label class="setting-label" for="setting-work">Work Duration</label>
         <div class="setting-control">
           <button class="setting-adj" data-target="setting-work" data-delta="-5">−</button>
@@ -102,9 +94,9 @@
           <span class="setting-unit">min</span>
           <button class="setting-adj" data-target="setting-work" data-delta="5">+</button>
         </div>
-      </div>
+        </div>
 
-      <div class="setting-group">
+        <div class="setting-group">
         <label class="setting-label" for="setting-break">Break Duration</label>
         <div class="setting-control">
           <button class="setting-adj" data-target="setting-break" data-delta="-1">−</button>
@@ -112,9 +104,9 @@
           <span class="setting-unit">min</span>
           <button class="setting-adj" data-target="setting-break" data-delta="1">+</button>
         </div>
-      </div>
+        </div>
 
-      <div class="setting-group">
+        <div class="setting-group">
         <label class="setting-label" for="setting-long-break">Long Break</label>
         <div class="setting-control">
           <button class="setting-adj" data-target="setting-long-break" data-delta="-5">−</button>
@@ -122,9 +114,9 @@
           <span class="setting-unit">min</span>
           <button class="setting-adj" data-target="setting-long-break" data-delta="5">+</button>
         </div>
-      </div>
+        </div>
 
-      <div class="setting-group">
+        <div class="setting-group">
         <label class="setting-label" for="setting-sessions">Sessions Before Long Break</label>
         <div class="setting-control">
           <button class="setting-adj" data-target="setting-sessions" data-delta="-1">−</button>
@@ -132,21 +124,21 @@
           <span class="setting-unit"></span>
           <button class="setting-adj" data-target="setting-sessions" data-delta="1">+</button>
         </div>
-      </div>
+        </div>
 
-      <!-- Show Floating Timer Toggle -->
-      <div class="setting-group">
+        <!-- Show Floating Timer Toggle -->
+        <div class="setting-group">
         <label class="setting-label">Show Floating Timer</label>
         <label class="toggle-switch" id="toggle-floating-timer">
           <input type="checkbox" id="floating-timer-checkbox" checked>
           <span class="toggle-slider"></span>
         </label>
-      </div>
+        </div>
 
-      <div class="settings-divider"></div>
+        <div class="settings-divider"></div>
 
-      <!-- Blacklist Manager -->
-      <div class="setting-group blacklist-group">
+        <!-- Blacklist Manager -->
+        <div class="setting-group blacklist-group">
         <label class="setting-label">Blocked Websites</label>
         <div class="blacklist-add">
           <input type="text" class="blacklist-input-single" id="blacklist-input-new" placeholder="Enter website (e.g. facebook.com)">
@@ -159,9 +151,10 @@
         </div>
         <ul class="blacklist-list" id="blacklist-list"></ul>
         <p class="blacklist-hint" id="blacklist-empty-hint">No websites blocked yet</p>
-      </div>
+        </div>
 
-      <button class="save-settings-btn" id="save-settings">Save Settings</button>
+        <button class="save-settings-btn" id="save-settings">Save Settings</button>
+      </div>
     </div>
 
   </div>

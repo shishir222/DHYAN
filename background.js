@@ -2,6 +2,7 @@ const DEFAULT_STATE = {
   sessionActive: false,
   sessionPhase: 'idle',
   pausedPhase: null,
+  pausedByBlock: false,
 
   workDuration: 25,
   breakDuration: 5,
@@ -14,6 +15,7 @@ const DEFAULT_STATE = {
   focusTabId: null,
   focusWindowId: null,
   focusTabUrl: null,
+  lastAllowedUrl: null,
 
   blacklist: [],
   showFloatingTimer: true,
@@ -208,17 +210,26 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   await StateManager.load();
   const s = StateManager.getCache();
 
-  if (!s.sessionActive || s.sessionPhase !== 'work') return;
+  if (!s.sessionActive) return;
 
   const isNewTab = isNewTabUrl(changeInfo.url);
   const isBlacklisted = isUrlBlacklisted(changeInfo.url, s.blacklist || []);
 
   if (isNewTab || isBlacklisted) {
+    await pauseForBlockedPage();
+    await StateManager.load();
+    if (!StateManager.getCache().pausedByBlock) return;
+
     await StateManager.mutate((st) => {
       st.stats.distractionsBlocked += 1;
     });
 
     chrome.tabs.update(tabId, { url: BLOCKED_PAGE_URL });
+  } else {
+    await StateManager.mutate((st) => {
+      st.lastAllowedUrl = changeInfo.url;
+    });
+    if (s.sessionPhase === 'paused' && s.pausedByBlock) await resumeSession();
   }
 });
 
@@ -248,9 +259,11 @@ async function startSession(tabId, windowId) {
     s.focusTabId = tabId;
     s.focusWindowId = windowId;
     s.focusTabUrl = url;
+    s.lastAllowedUrl = url;
     s.currentSessionCount = 0;
     s.pausedPhase = null;
     s.pausedTimeRemaining = null;
+    s.pausedByBlock = false;
   });
 
   await PomodoroTimer.startPhase('work');
@@ -278,6 +291,7 @@ async function stopSession() {
     st.endTime = null;
     st.pausedPhase = null;
     st.pausedTimeRemaining = null;
+    st.pausedByBlock = false;
     st.currentSessionCount = 0;
   });
 
@@ -303,10 +317,26 @@ async function pauseSession() {
     st.sessionPhase = 'paused';
     st.pausedTimeRemaining = remaining;
     st.endTime = null;
+    st.pausedByBlock = false;
   });
 
   chrome.alarms.clear('pomodoro');
   updateBadge();
+  broadcastState();
+}
+
+async function pauseForBlockedPage() {
+  await StateManager.load();
+  const s = StateManager.getCache();
+  if (!s.sessionActive) return;
+
+  if (s.sessionPhase === 'work') await pauseSession();
+
+  await StateManager.mutate((st) => {
+    if (st.sessionActive && st.sessionPhase === 'paused') {
+      st.pausedByBlock = true;
+    }
+  });
   broadcastState();
 }
 
@@ -323,6 +353,7 @@ async function resumeSession() {
     st.endTime = Date.now() + remaining;
     st.pausedPhase = null;
     st.pausedTimeRemaining = null;
+    st.pausedByBlock = false;
   });
 
   const updated = StateManager.getCache();
@@ -391,7 +422,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 });
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  handleMessage(request)
+  handleMessage(request, sender)
     .then((response) => sendResponse(response))
     .catch((err) => {
       console.error('Message handler error:', err);
@@ -400,10 +431,39 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   return true;
 });
 
-async function handleMessage(req) {
+async function handleMessage(req, sender) {
   await StateManager.load();
 
   switch (req.action) {
+    case 'backToWork': {
+      const tabId = req.tabId ?? sender?.tab?.id;
+      const s = StateManager.getCache();
+      if (tabId == null || !s.sessionActive) return { error: 'No active session' };
+
+      const previousAllowedUrl = s.lastAllowedUrl || s.focusTabUrl;
+      const targetUrl = previousAllowedUrl && !isUrlBlacklisted(previousAllowedUrl, s.blacklist || []) && !isNewTabUrl(previousAllowedUrl)
+        ? previousAllowedUrl
+        : 'https://www.google.com/';
+      await chrome.tabs.update(tabId, { url: targetUrl });
+      if (s.sessionPhase === 'paused' && s.pausedByBlock) await resumeSession();
+      return StateManager.getCache();
+    }
+
+    case 'ensureBlockedPause': {
+      await pauseForBlockedPage();
+      const state = StateManager.getCache();
+      return {
+        sessionActive: state.sessionActive,
+        sessionPhase: state.sessionPhase,
+        pausedTimeRemaining: state.pausedTimeRemaining,
+      };
+    }
+
+    case 'openPopup': {
+      await chrome.action.openPopup();
+      return { ok: true };
+    }
+
     case 'startSession': {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       if (!tab) return { error: 'No active tab found' };

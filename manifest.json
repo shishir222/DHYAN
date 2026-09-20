@@ -39,7 +39,9 @@
     {
       "resources": [
         "blocked.html",
-        "blocked.css"
+        "blocked.css",
+        "blocked.js",
+        "stare.gif"
       ],
       "matches": [
         "<all_urls>"
